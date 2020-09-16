@@ -1,5 +1,10 @@
 package banglisp
 
+import (
+	"fmt"
+	"os"
+)
+
 type objectType int
 
 const (
@@ -23,12 +28,31 @@ func (o objectType) String() string {
 	}
 }
 
-func (o *Object) isSelfEvaluated() bool {
-	switch o.kind {
+func (obj *Object) isSelfEvaluated() bool {
+	switch obj.kind {
 	case FIXNUM:
 		return true
 	default:
 		return false
+	}
+}
+
+func (obj *Object) Eval() (*Object, error) {
+	if obj.isSelfEvaluated() {
+		return obj, nil
+	}
+
+	return nil, fmt.Errorf("unsupported eval type")
+}
+
+func (obj *Object) Print() {
+	switch obj.kind {
+	case FIXNUM:
+		v, _ := obj.value.(int64)
+		fmt.Println(v)
+	default:
+		fmt.Println("unsupported print type")
+		os.Exit(1)
 	}
 }
 
