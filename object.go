@@ -3,7 +3,7 @@ package banglisp
 type objectType int
 
 const (
-	NUMBER objectType = iota + 1
+	FIXNUM objectType = iota + 1
 )
 
 type Object struct {
@@ -14,9 +14,18 @@ type Object struct {
 
 var objectID = 0
 
+func (o objectType) String() string {
+	switch o {
+	case FIXNUM:
+		return "FIXNUM"
+	default:
+		return "UNKNOWN_TYPE"
+	}
+}
+
 func (o *Object) isSelfEvaluated() bool {
 	switch o.kind {
-	case NUMBER:
+	case FIXNUM:
 		return true
 	default:
 		return false
@@ -33,10 +42,10 @@ func Eq(a *Object, b *Object) bool {
 	return a.id == b.id
 }
 
-func NewNumber(val int) *Object {
+func NewFixnum(val int64) *Object {
 	obj := &Object{
 		id:    newID(),
-		kind:  NUMBER,
+		kind:  FIXNUM,
 		value: val,
 	}
 
