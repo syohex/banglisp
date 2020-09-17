@@ -3,3 +3,5 @@
 *~
 *.out
 *.exe
+
+cmd/banglisp/banglisp

@@ -5,14 +5,14 @@ import (
 )
 
 func TestNewFixnum(t *testing.T) {
-	num1 := NewFixnum(10)
+	num1 := newFixnum(10)
 
 	if !Eq(num1, num1) {
 		t.Error("Eq(obj, obj) must always return true")
 		return
 	}
 
-	num2 := NewFixnum(20)
+	num2 := newFixnum(20)
 	if Eq(num1, num2) {
 		t.Error("Eq(obj1, obj2) must always return false")
 		return
@@ -26,7 +26,7 @@ func TestNewFixnum(t *testing.T) {
 }
 
 func TestSelfEvaluatedObject(t *testing.T) {
-	num1 := NewFixnum(10)
+	num1 := newFixnum(10)
 	ev, err := num1.Eval()
 	if err != nil {
 		t.Error("failed to evaluate fixnum object")
@@ -38,7 +38,7 @@ func TestSelfEvaluatedObject(t *testing.T) {
 		return
 	}
 
-	str := NewString("Hello World")
+	str := newString("Hello World")
 	ev, err = str.Eval()
 	if err != nil {
 		t.Error("failed to evaluate string object")

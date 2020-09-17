@@ -15,8 +15,16 @@ func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
 func isDelimiter(c byte) bool {
 	return isSpace(c) || c == '(' || c == ')' || c == '"' || c == ';'
+}
+
+func isInitialSymbolChar(c byte) bool {
+	return isAlpha(c) || c == '*' || c == '/' || c == '>' || c == '<' || c == '=' || c == '?' || c == '!'
 }
 
 func nextCharIsDigit(br *bufio.Reader) bool {
@@ -26,6 +34,15 @@ func nextCharIsDigit(br *bufio.Reader) bool {
 	}
 
 	return isDigit(bs[0])
+}
+
+func nextCharIsDelimiter(br *bufio.Reader) bool {
+	bs, err := br.Peek(1)
+	if err != nil {
+		return false
+	}
+
+	return isDelimiter(bs[0])
 }
 
 func skipWhiteSpace(br *bufio.Reader) error {
@@ -122,9 +139,9 @@ func readNumber(br *bufio.Reader, first byte) (*Object, error) {
 		}
 
 		if hasPoint {
-			return NewFloat(num), nil
+			return newFloat(num), nil
 		} else {
-			return NewFixnum(int64(num)), nil
+			return newFixnum(int64(num)), nil
 		}
 	}
 
@@ -162,7 +179,36 @@ func readString(br *bufio.Reader) (*Object, error) {
 		sb.WriteByte(c)
 	}
 
-	return NewString(sb.String()), nil
+	return newString(sb.String()), nil
+}
+
+func readSymbol(br *bufio.Reader, c byte) (*Object, error) {
+	var sb strings.Builder
+	var err error
+	for {
+		if !(isInitialSymbolChar(c) || isDigit(c) || c == '+' || c == '-') {
+			break
+		}
+
+		sb.WriteByte(c)
+		c, err = br.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !isDelimiter(c) {
+		return nil, fmt.Errorf("symbol not followed by delimiter")
+	}
+
+	if err := br.UnreadByte(); err != nil {
+		return nil, err
+	}
+
+	return newSymbol(sb.String()), nil
 }
 
 func Read(r io.Reader) (*Object, error) {
@@ -181,6 +227,9 @@ func Read(r io.Reader) (*Object, error) {
 		return readNumber(br, c)
 	} else if c == '"' {
 		return readString(br)
+	} else if isInitialSymbolChar(c) ||
+		((c == '+' || c == '-') && nextCharIsDelimiter(br)) {
+		return readSymbol(br, c)
 	}
 
 	return nil, fmt.Errorf("unsupported data type")
