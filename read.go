@@ -67,6 +67,50 @@ func skipWhiteSpace(br *bufio.Reader) error {
 	}
 }
 
+func readFixnum(br *bufio.Reader, first byte) (*Object, error) {
+	var sign int64 = 1
+	if first == '-' {
+		sign = -1
+	} else {
+		if err := br.UnreadByte(); err != nil {
+			return nil, err
+		}
+	}
+
+	var c byte
+	var err error
+	var num int64 = 0
+	eof := false
+	for {
+		c, err = br.ReadByte()
+		if err == io.EOF {
+			eof = true
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if !isDigit(c) {
+			break
+		}
+
+		num = (num * 10) + int64(c-'0')
+	}
+
+	num *= sign
+
+	if eof || isDelimiter(c) {
+		if err := br.UnreadByte(); err != nil {
+			return nil, err
+		}
+
+		return NewFixnum(num), nil
+	}
+
+	return nil, fmt.Errorf("could not parse fixnum")
+}
+
 func Read(r io.Reader) (*Object, error) {
 	br := bufio.NewReader(r)
 
@@ -80,46 +124,7 @@ func Read(r io.Reader) (*Object, error) {
 	}
 
 	if isDigit(c) || (c == '-' && nextCharIsDigit(br)) {
-		// fixnum
-		var sign int64 = 1
-		if c == '-' {
-			sign = -1
-		} else {
-			if err := br.UnreadByte(); err != nil {
-				return nil, err
-			}
-		}
-
-		var num int64 = 0
-		eof := false
-		for {
-			c, err = br.ReadByte()
-			if err == io.EOF {
-				eof = true
-				break
-			}
-			if err != nil {
-				return nil, err
-			}
-
-			if !isDigit(c) {
-				break
-			}
-
-			num = (num * 10) + int64(c-'0')
-		}
-
-		num *= sign
-
-		if eof || isDelimiter(c) {
-			if err := br.UnreadByte(); err != nil {
-				return nil, err
-			}
-
-			return NewFixnum(num), nil
-		}
-
-		return nil, fmt.Errorf("could not parse fixnum")
+		return readFixnum(br, c)
 	}
 
 	return nil, fmt.Errorf("unsupported data type")
