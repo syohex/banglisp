@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strings"
 )
 
 func isSpace(c byte) bool {
@@ -111,6 +112,40 @@ func readFixnum(br *bufio.Reader, first byte) (*Object, error) {
 	return nil, fmt.Errorf("could not parse fixnum")
 }
 
+func readString(br *bufio.Reader) (*Object, error) {
+	var sb strings.Builder
+
+	for {
+		c, err := br.ReadByte()
+		if err == io.EOF {
+			return nil, fmt.Errorf("string literal is not terminated")
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if c == '"' {
+			break
+		} else if c == '\\' {
+			c, err = br.ReadByte()
+			if err == io.EOF {
+				return nil, fmt.Errorf("string literal is not terminated")
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			if c == 'n' {
+				c = '\n'
+			}
+		}
+
+		sb.WriteByte(c)
+	}
+
+	return NewString(sb.String()), nil
+}
+
 func Read(r io.Reader) (*Object, error) {
 	br := bufio.NewReader(r)
 
@@ -125,6 +160,8 @@ func Read(r io.Reader) (*Object, error) {
 
 	if isDigit(c) || (c == '-' && nextCharIsDigit(br)) {
 		return readFixnum(br, c)
+	} else if c == '"' {
+		return readString(br)
 	}
 
 	return nil, fmt.Errorf("unsupported data type")

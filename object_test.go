@@ -25,7 +25,7 @@ func TestNewFixnum(t *testing.T) {
 	}
 }
 
-func TestEvalFixnum(t *testing.T) {
+func TestSelfEvaluatedObject(t *testing.T) {
 	num1 := NewFixnum(10)
 	ev, err := num1.Eval()
 	if err != nil {
@@ -33,9 +33,20 @@ func TestEvalFixnum(t *testing.T) {
 		return
 	}
 
-	v, ok := ev.value.(int64)
-	if !ok || v != 10 {
+	if v, ok := ev.value.(int64); !ok || v != 10 {
 		t.Error("fixnum must be self-evaluated type")
+		return
+	}
+
+	str := NewString("Hello World")
+	ev, err = str.Eval()
+	if err != nil {
+		t.Error("failed to evaluate string object")
+		return
+	}
+
+	if v, ok := ev.value.(string); !ok || v != "Hello World" {
+		t.Error("string must be self-evaluated type")
 		return
 	}
 }

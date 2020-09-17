@@ -9,6 +9,7 @@ type objectType int
 
 const (
 	FIXNUM objectType = iota + 1
+	STRING
 )
 
 type Object struct {
@@ -23,6 +24,8 @@ func (o objectType) String() string {
 	switch o {
 	case FIXNUM:
 		return "FIXNUM"
+	case STRING:
+		return "STRING"
 	default:
 		return "UNKNOWN_TYPE"
 	}
@@ -30,7 +33,7 @@ func (o objectType) String() string {
 
 func (obj *Object) isSelfEvaluated() bool {
 	switch obj.kind {
-	case FIXNUM:
+	case FIXNUM, STRING:
 		return true
 	default:
 		return false
@@ -50,6 +53,9 @@ func (obj *Object) Print() {
 	case FIXNUM:
 		v, _ := obj.value.(int64)
 		fmt.Println(v)
+	case STRING:
+		v, _ := obj.value.(string)
+		fmt.Printf("\"%s\"\n", v)
 	default:
 		fmt.Println("unsupported print type")
 		os.Exit(1)
@@ -66,12 +72,20 @@ func Eq(a *Object, b *Object) bool {
 	return a.id == b.id
 }
 
-func NewFixnum(val int64) *Object {
+func newObject(kind objectType, val interface{}) *Object {
 	obj := &Object{
 		id:    newID(),
-		kind:  FIXNUM,
+		kind:  kind,
 		value: val,
 	}
 
 	return obj
+}
+
+func NewFixnum(val int64) *Object {
+	return newObject(FIXNUM, val)
+}
+
+func NewString(val string) *Object {
+	return newObject(STRING, val)
 }
