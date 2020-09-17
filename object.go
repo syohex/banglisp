@@ -9,6 +9,7 @@ type objectType int
 
 const (
 	FIXNUM objectType = iota + 1
+	FLOAT
 	STRING
 )
 
@@ -24,6 +25,8 @@ func (o objectType) String() string {
 	switch o {
 	case FIXNUM:
 		return "FIXNUM"
+	case FLOAT:
+		return "FLOAT"
 	case STRING:
 		return "STRING"
 	default:
@@ -33,7 +36,7 @@ func (o objectType) String() string {
 
 func (obj *Object) isSelfEvaluated() bool {
 	switch obj.kind {
-	case FIXNUM, STRING:
+	case FIXNUM, FLOAT, STRING:
 		return true
 	default:
 		return false
@@ -52,6 +55,9 @@ func (obj *Object) Print() {
 	switch obj.kind {
 	case FIXNUM:
 		v, _ := obj.value.(int64)
+		fmt.Println(v)
+	case FLOAT:
+		v, _ := obj.value.(float64)
 		fmt.Println(v)
 	case STRING:
 		v, _ := obj.value.(string)
@@ -84,6 +90,10 @@ func newObject(kind objectType, val interface{}) *Object {
 
 func NewFixnum(val int64) *Object {
 	return newObject(FIXNUM, val)
+}
+
+func NewFloat(val float64) *Object {
+	return newObject(FLOAT, val)
 }
 
 func NewString(val string) *Object {

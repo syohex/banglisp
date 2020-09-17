@@ -68,7 +68,7 @@ func skipWhiteSpace(br *bufio.Reader) error {
 	}
 }
 
-func readFixnum(br *bufio.Reader, first byte) (*Object, error) {
+func readNumber(br *bufio.Reader, first byte) (*Object, error) {
 	var sign int64 = 1
 	if first == '-' {
 		sign = -1
@@ -80,7 +80,9 @@ func readFixnum(br *bufio.Reader, first byte) (*Object, error) {
 
 	var c byte
 	var err error
-	var num int64 = 0
+	var num float64 = 0
+	hasPoint := false
+	var div float64 = 10
 	eof := false
 	for {
 		c, err = br.ReadByte()
@@ -92,21 +94,38 @@ func readFixnum(br *bufio.Reader, first byte) (*Object, error) {
 			return nil, err
 		}
 
+		if c == '.' {
+			if hasPoint {
+				return nil, fmt.Errorf("float value contains multiple dots")
+			}
+			hasPoint = true
+			continue
+		}
+
 		if !isDigit(c) {
 			break
 		}
 
-		num = (num * 10) + int64(c-'0')
+		if hasPoint {
+			num = num + (float64(c-'0') / div)
+			div *= 10
+		} else {
+			num = (num * 10) + float64(c-'0')
+		}
 	}
 
-	num *= sign
+	num *= float64(sign)
 
 	if eof || isDelimiter(c) {
 		if err := br.UnreadByte(); err != nil {
 			return nil, err
 		}
 
-		return NewFixnum(num), nil
+		if hasPoint {
+			return NewFloat(num), nil
+		} else {
+			return NewFixnum(int64(num)), nil
+		}
 	}
 
 	return nil, fmt.Errorf("could not parse fixnum")
@@ -159,7 +178,7 @@ func Read(r io.Reader) (*Object, error) {
 	}
 
 	if isDigit(c) || (c == '-' && nextCharIsDigit(br)) {
-		return readFixnum(br, c)
+		return readNumber(br, c)
 	} else if c == '"' {
 		return readString(br)
 	}
