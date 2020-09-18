@@ -56,7 +56,7 @@ func TestReadFixnum(t *testing.T) {
 				return
 			}
 
-			if got.kind != FIXNUM {
+			if got.kind != FixnumType {
 				t.Errorf("got invalid type object [input]: %s -> %v", tt.expr, got.kind)
 				return
 			}
@@ -119,7 +119,7 @@ func TestReadFloat(t *testing.T) {
 				return
 			}
 
-			if got.kind != FLOAT {
+			if got.kind != FloatType {
 				t.Errorf("got invalid type object [input]: %s -> %v", tt.expr, got.kind)
 				return
 			}
@@ -188,7 +188,7 @@ func TestReadString(t *testing.T) {
 				return
 			}
 
-			if got.kind != STRING {
+			if got.kind != StringType {
 				t.Errorf("got invalid type object [input]: %s -> %v", tt.expr, got.kind)
 				return
 			}

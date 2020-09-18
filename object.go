@@ -3,16 +3,18 @@ package banglisp
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type objectType int
 
 const (
-	FIXNUM objectType = iota + 1
-	FLOAT
-	STRING
-	SYMBOL
-	PACKAGE_
+	FixnumType objectType = iota + 1
+	FloatType
+	StringType
+	SymbolType
+	PackageType
+	ConsCellType
 )
 
 type Object struct {
@@ -29,23 +31,32 @@ type Symbol struct {
 	package_ *Object
 }
 
-type Package_ struct {
+type Package struct {
 	name  *Object
 	table map[string]*Object
+}
+
+type ConsCell struct {
+	car *Object
+	cdr *Object
 }
 
 var objectID = 0
 
 func (o objectType) String() string {
 	switch o {
-	case FIXNUM:
-		return "FIXNUM"
-	case FLOAT:
-		return "FLOAT"
-	case STRING:
-		return "STRING"
-	case SYMBOL:
-		return "SYMBOL"
+	case FixnumType:
+		return "Fixnum"
+	case FloatType:
+		return "Float"
+	case StringType:
+		return "String"
+	case SymbolType:
+		return "Symbol"
+	case PackageType:
+		return "Package"
+	case ConsCellType:
+		return "ConsCell"
 	default:
 		return "UNKNOWN_TYPE"
 	}
@@ -53,7 +64,7 @@ func (o objectType) String() string {
 
 func (obj *Object) isSelfEvaluated() bool {
 	switch obj.kind {
-	case FIXNUM, FLOAT, STRING:
+	case FixnumType, FloatType, StringType:
 		return true
 	default:
 		return false
@@ -66,37 +77,48 @@ func (obj *Object) Eval() (*Object, error) {
 	}
 
 	switch obj.kind {
-	case SYMBOL:
+	case SymbolType:
 		v := obj.value.(*Symbol)
+		if v.value == nil {
+			name := v.name.value.(string)
+			return nil, &ErrUnboundVariable{name}
+		}
+
 		return v.value, nil
 	default:
 		return nil, fmt.Errorf("unsupported eval type")
 	}
 }
 
-func (obj *Object) Print() {
+func (obj Object) String() string {
 	switch obj.kind {
-	case FIXNUM:
+	case FixnumType:
 		v := obj.value.(int64)
-		fmt.Println(v)
-	case FLOAT:
+		return strconv.FormatInt(v, 10)
+	case FloatType:
 		v := obj.value.(float64)
-		fmt.Println(v)
-	case STRING:
+		return strconv.FormatFloat(v, 'E', -1, 64)
+	case StringType:
 		v := obj.value.(string)
-		fmt.Printf("\"%s\"\n", v)
-	case SYMBOL:
+		return v
+	case SymbolType:
 		v := obj.value.(*Symbol)
 		n := v.name.value.(string)
-		fmt.Printf("%s\n", n)
+		return n
+	case PackageType:
+		v := obj.value.(*Package)
+		n := v.name.value.(string)
+		return n
+	case ConsCellType:
+		v := obj.value.(*ConsCell)
+		return fmt.Sprintf("(%s %s)", v.car.String(), v.cdr.String())
 	default:
-		fmt.Println("unsupported print type")
-		os.Exit(1)
+		return "error: unsupported print type"
 	}
 }
 
-func (p *Package_) setSymbol(s *Object) {
-	if s.kind != SYMBOL {
+func (p *Package) setSymbol(s *Object) {
+	if s.kind != SymbolType {
 		fmt.Fprintf(os.Stderr, "Invalid value passing: %v", s)
 		panic("invalid")
 	}
@@ -120,13 +142,17 @@ func isNull(v *Object) bool {
 	return Eq(v, nilObj)
 }
 
+func cons(car *Object, cdr *Object) *Object {
+	return newConsCell(car, cdr)
+}
+
 func intern(name *Object, pack *Object) *Object {
 	if pack == nil {
 		pack = defaultPackage
 	}
 
 	n := name.value.(string)
-	p := pack.value.(*Package_)
+	p := pack.value.(*Package)
 
 	if v, ok := p.table[n]; ok {
 		return v
@@ -151,15 +177,15 @@ func newObject(kind objectType, val interface{}) *Object {
 }
 
 func newFixnum(val int64) *Object {
-	return newObject(FIXNUM, val)
+	return newObject(FixnumType, val)
 }
 
 func newFloat(val float64) *Object {
-	return newObject(FLOAT, val)
+	return newObject(FloatType, val)
 }
 
 func newString(val string) *Object {
-	return newObject(STRING, val)
+	return newObject(StringType, val)
 }
 
 func newSymbolInternal(val string) *Object {
@@ -168,7 +194,7 @@ func newSymbolInternal(val string) *Object {
 		plist: nilObj,
 	}
 
-	return newObject(SYMBOL, s)
+	return newObject(SymbolType, s)
 }
 
 func newSymbol(val string) *Object {
@@ -176,10 +202,19 @@ func newSymbol(val string) *Object {
 }
 
 func newPackage(name string) *Object {
-	p := &Package_{
+	p := &Package{
 		name:  newString(name),
 		table: make(map[string]*Object),
 	}
 
-	return newObject(PACKAGE_, p)
+	return newObject(PackageType, p)
+}
+
+func newConsCell(car *Object, cdr *Object) *Object {
+	c := &ConsCell{
+		car: car,
+		cdr: cdr,
+	}
+
+	return newObject(ConsCellType, c)
 }

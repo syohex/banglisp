@@ -41,10 +41,18 @@ func main() {
 
 		val, err := exp.Eval()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1) // XXX
+			switch v := err.(type) {
+			case *banglisp.ErrUnboundVariable:
+				fmt.Printf("%s\n", v.Error())
+				break
+			default:
+				fmt.Println(err)
+				os.Exit(1) // XXX
+			}
+
+			continue
 		}
 
-		val.Print()
+		fmt.Printf("%v\n", *val)
 	}
 }

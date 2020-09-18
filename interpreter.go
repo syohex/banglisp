@@ -13,7 +13,7 @@ func Initialize() {
 	v.plist = nilObj
 
 	defaultPackage = newPackage("CL-USER")
-	p := defaultPackage.value.(*Package_)
+	p := defaultPackage.value.(*Package)
 
 	p.setSymbol(nilObj)
 
