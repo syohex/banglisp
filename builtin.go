@@ -146,13 +146,31 @@ func builtinMod(_ *Environment, args []*Object) *Object {
 	return newFixnum(ret)
 }
 
+func builtinCar(_ *Environment, args []*Object) *Object {
+	c := args[0].value.(*ConsCell)
+	return c.car
+}
+
+func builtinCdr(_ *Environment, args []*Object) *Object {
+	c := args[0].value.(*ConsCell)
+	return c.cdr
+}
+
 func initBuiltinFunctions() {
 	installBuiltinFunction("eq", builtinEq)
 	installBuiltinFunction("null", builtinNull)
 	installBuiltinFunction("atom", builtinAtom)
+
+	// arithmetic operators
 	installBuiltinFunction("+", builtinAdd)
 	installBuiltinFunction("-", builtinMinus)
 	installBuiltinFunction("*", builtinMul)
 	installBuiltinFunction("/", builtinDiv)
 	installBuiltinFunction("%", builtinMod)
+
+	// cons cell operations
+	installBuiltinFunction("car", builtinCar)
+	installBuiltinFunction("first", builtinCar)
+	installBuiltinFunction("cdr", builtinCdr)
+	installBuiltinFunction("rest", builtinCdr)
 }

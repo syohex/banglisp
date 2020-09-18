@@ -233,21 +233,30 @@ func noEvalArguments(args *Object) []*Object {
 	return ret
 }
 
-func stringConsCell(sb strings.Builder, obj *Object) {
-	v := obj.value.(*ConsCell)
+func stringConsCell(sb *strings.Builder, obj *Object) {
+	first := true
+	next := obj
 	for {
-		sb.WriteString(v.car.String())
+		v := next.value.(*ConsCell)
 		if v.IsNil() {
 			break
 		}
 
-		if v.cdr.kind == ConsCellType {
+		if !first {
+			first = true
 			sb.WriteByte(' ')
-			stringConsCell(sb, v.cdr)
-		} else {
+		}
+
+		sb.WriteString(v.car.String())
+
+		if v.cdr.kind != ConsCellType {
 			sb.WriteString(" . ")
 			sb.WriteString(v.cdr.String())
+			break
 		}
+
+		next = v.cdr
+		first = false
 	}
 }
 
@@ -273,7 +282,7 @@ func (obj Object) String() string {
 	case ConsCellType:
 		var sb strings.Builder
 		sb.WriteByte('(')
-		stringConsCell(sb, &obj)
+		stringConsCell(&sb, &obj)
 		sb.WriteByte(')')
 		return sb.String()
 	default:

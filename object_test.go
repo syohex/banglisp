@@ -27,7 +27,7 @@ func TestNewFixnum(t *testing.T) {
 
 func TestSelfEvaluatedObject(t *testing.T) {
 	num1 := newFixnum(10)
-	ev, err := num1.Eval()
+	ev, err := Eval(num1)
 	if err != nil {
 		t.Error("failed to evaluate fixnum object")
 		return
@@ -39,7 +39,7 @@ func TestSelfEvaluatedObject(t *testing.T) {
 	}
 
 	str := newString("Hello World")
-	ev, err = str.Eval()
+	ev, err = Eval(str)
 	if err != nil {
 		t.Error("failed to evaluate string object")
 		return

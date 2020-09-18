@@ -290,6 +290,14 @@ func read1(br *bufio.Reader) (*Object, error) {
 		return readSymbol(br, c)
 	} else if c == '(' {
 		return readList(br)
+	} else if c == '\'' {
+		rest, err := read1(br)
+		if err != nil {
+			return nil, err
+		}
+
+		quote := intern(newString("quote"), nil)
+		return cons(quote, cons(rest, newConsCell(nilObj, nilObj))), nil
 	}
 
 	return nil, fmt.Errorf("unsupported data type")
