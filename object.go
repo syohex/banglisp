@@ -16,8 +16,8 @@ const (
 	SymbolType
 	PackageType
 	ConsCellType
-	FunctionType
 	SpecialFormType
+	BuiltinFunctionType
 )
 
 type Object struct {
@@ -44,10 +44,49 @@ type ConsCell struct {
 	cdr *Object
 }
 
-type SpecialFormFunc func(args ...*Object) *Object
+type Frame struct {
+	bindings []struct {
+		name  *Object
+		value *Object
+	}
+}
+
+type Environment struct {
+	frames []*Frame
+}
+
+func (e *Environment) lookupSymbol(obj *Object) (*Object, bool) {
+	for _, f := range e.frames {
+		for _, b := range f.bindings {
+			if Eq(obj, b.name) {
+				return b.value, true
+			}
+		}
+	}
+
+	return nil, false
+}
+
+func (e *Environment) updateValue(variable *Object, value *Object) {
+	for _, f := range e.frames {
+		for _, b := range f.bindings {
+			if Eq(variable, b.name) {
+				b.value = value
+			}
+		}
+	}
+}
+
+type specialFormFunction func(env *Environment, args []*Object) *Object
 
 type SpecialForm struct {
-	code SpecialFormFunc
+	code specialFormFunction
+}
+
+type builtinFunctionType func(env *Environment, args []*Object) *Object
+
+type BuiltinFunction struct {
+	code builtinFunctionType
 }
 
 func (c *ConsCell) IsNil() bool {
@@ -55,6 +94,15 @@ func (c *ConsCell) IsNil() bool {
 }
 
 var objectID = 0
+
+func isAtom(obj *Object) bool {
+	switch obj.kind {
+	case FixnumType, FloatType, StringType, SymbolType:
+		return true
+	default:
+		return false
+	}
+}
 
 func (o objectType) String() string {
 	switch o {
@@ -70,8 +118,8 @@ func (o objectType) String() string {
 		return "Package"
 	case ConsCellType:
 		return "ConsCell"
-	case FunctionType:
-		return "Function"
+	case BuiltinFunctionType:
+		return "BuiltinFunction"
 	case SpecialFormType:
 		return "SpecialForm"
 	default:
@@ -88,7 +136,7 @@ func (obj *Object) isSelfEvaluated() bool {
 	}
 }
 
-func (obj *Object) Eval() (*Object, error) {
+func (obj *Object) Eval(env *Environment) (*Object, error) {
 	if obj.isSelfEvaluated() {
 		return obj, nil
 	}
@@ -114,13 +162,13 @@ func (obj *Object) Eval() (*Object, error) {
 			return nil, fmt.Errorf("symbol '%v' does not have function", *car.name)
 		}
 
-		return v.car.apply(v.cdr)
+		return v.car.apply(v.cdr, env)
 	default:
 		return nil, fmt.Errorf("unsupported eval type")
 	}
 }
 
-func (obj *Object) apply(args *Object) (*Object, error) {
+func (obj *Object) apply(args *Object, env *Environment) (*Object, error) {
 	switch obj.kind {
 	case SymbolType:
 		car := obj.value.(*Symbol)
@@ -128,15 +176,45 @@ func (obj *Object) apply(args *Object) (*Object, error) {
 			return nil, fmt.Errorf("symbol '%v' does not have function", *car.name)
 		}
 
-		return car.function.apply(args)
+		return car.function.apply(args, env)
 	case SpecialFormType:
 		form := obj.value.(*SpecialForm)
 		formArgs := noEvalArguments(args)
-		ret := form.code(formArgs...)
+		ret := form.code(env, formArgs)
+		return ret, nil
+	case BuiltinFunctionType:
+		fn := obj.value.(*BuiltinFunction)
+		fnArgs, err := evalArguments(args, env)
+		if err != nil {
+			return nil, err
+		}
+
+		ret := fn.code(env, fnArgs)
 		return ret, nil
 	default:
 		return nil, fmt.Errorf("first element of cons cell is not list")
 	}
+}
+
+func evalArguments(args *Object, env *Environment) ([]*Object, error) {
+	var ret []*Object
+	next := args
+	for {
+		v := next.value.(*ConsCell)
+		if v.IsNil() {
+			break
+		}
+
+		ev, err := v.car.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, ev)
+		next = v.cdr
+	}
+
+	return ret, nil
 }
 
 func noEvalArguments(args *Object) []*Object {
@@ -305,15 +383,34 @@ func newConsCell(car *Object, cdr *Object) *Object {
 	return newObject(ConsCellType, c)
 }
 
-func newSpecialForm(code SpecialFormFunc) *Object {
+func newSpecialForm(code specialFormFunction) *Object {
 	s := &SpecialForm{
 		code: code,
 	}
 	return newObject(SpecialFormType, s)
 }
 
-func installSpecialForm(name string, code SpecialFormFunc) {
+func installSpecialForm(name string, code specialFormFunction) {
 	sym := newSymbol(name)
 	v := sym.value.(*Symbol)
 	v.function = newSpecialForm(code)
+}
+
+func newBuiltinFunction(code builtinFunctionType) *Object {
+	bf := &BuiltinFunction{
+		code: code,
+	}
+	return newObject(BuiltinFunctionType, bf)
+}
+
+func installBuiltinFunction(name string, code builtinFunctionType) {
+	sym := newSymbol(name)
+	v := sym.value.(*Symbol)
+	v.function = newBuiltinFunction(code)
+}
+
+func newEmptyEnvironment() *Environment {
+	e := &Environment{}
+	e.frames = append(e.frames, &Frame{})
+	return e
 }

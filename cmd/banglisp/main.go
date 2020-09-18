@@ -37,7 +37,7 @@ func main() {
 			os.Exit(1) // XXX
 		}
 
-		val, err := exp.Eval()
+		val, err := banglisp.Eval(exp)
 		if err != nil {
 			switch v := err.(type) {
 			case *banglisp.ErrUnboundVariable:

@@ -1,13 +1,13 @@
 package banglisp
 
-func specialQuote(args ...*Object) *Object {
+func specialQuote(_ *Environment, args []*Object) *Object {
 	// (quote exp)
 	return args[0]
 }
 
-func specialIf(args ...*Object) *Object {
+func specialIf(env *Environment, args []*Object) *Object {
 	// (if cond then else)
-	cond, err := args[0].Eval()
+	cond, err := args[0].Eval(env)
 	if err != nil {
 		panic(err)
 	}
@@ -17,7 +17,7 @@ func specialIf(args ...*Object) *Object {
 			return nilObj
 		}
 
-		els, err := args[2].Eval()
+		els, err := args[2].Eval(env)
 		if err != nil {
 			panic(err)
 		}
@@ -25,7 +25,7 @@ func specialIf(args ...*Object) *Object {
 		return els
 	}
 
-	then, err := args[1].Eval()
+	then, err := args[1].Eval(env)
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +33,21 @@ func specialIf(args ...*Object) *Object {
 	return then
 }
 
+func specialSetf(env *Environment, args []*Object) *Object {
+	// (setf sym value)
+	if _, ok := env.lookupSymbol(args[0]); !ok {
+		sym := args[0].value.(*Symbol)
+		sym.value = args[1]
+		return args[1]
+	}
+
+	// change value of local variable
+	env.updateValue(args[0], args[1])
+	return args[1]
+}
+
 func initSpecialForm() {
 	installSpecialForm("quote", specialQuote)
 	installSpecialForm("if", specialIf)
+	installSpecialForm("setf", specialSetf)
 }
