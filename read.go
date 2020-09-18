@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -45,15 +46,15 @@ func nextCharIsDelimiter(br *bufio.Reader) bool {
 	return isDelimiter(bs[0])
 }
 
-func skipWhiteSpace(br *bufio.Reader) error {
+func skipWhiteSpace(br *bufio.Reader) {
 	for {
 		c, err := br.ReadByte()
 		if err == io.EOF {
-			return nil
+			return
 		}
 
 		if err != nil {
-			return err
+			log.Fatalln(err)
 		}
 
 		if isSpace(c) {
@@ -68,7 +69,7 @@ func skipWhiteSpace(br *bufio.Reader) error {
 				}
 
 				if err != nil {
-					return err
+					log.Fatalln(err)
 				}
 
 				if c == '\n' {
@@ -77,11 +78,14 @@ func skipWhiteSpace(br *bufio.Reader) error {
 			}
 		}
 
-		if err := br.UnreadByte(); err != nil {
-			return err
-		}
+		unreadChar(br)
+		return
+	}
+}
 
-		return nil
+func unreadChar(br *bufio.Reader) {
+	if err := br.UnreadByte(); err != nil {
+		log.Fatalln(err)
 	}
 }
 
@@ -90,9 +94,7 @@ func readNumber(br *bufio.Reader, first byte) (*Object, error) {
 	if first == '-' {
 		sign = -1
 	} else {
-		if err := br.UnreadByte(); err != nil {
-			return nil, err
-		}
+		unreadChar(br)
 	}
 
 	var c byte
@@ -134,8 +136,8 @@ func readNumber(br *bufio.Reader, first byte) (*Object, error) {
 	num *= float64(sign)
 
 	if eof || isDelimiter(c) {
-		if err := br.UnreadByte(); err != nil {
-			return nil, err
+		if !eof {
+			unreadChar(br)
 		}
 
 		if hasPoint {
@@ -204,19 +206,75 @@ func readSymbol(br *bufio.Reader, c byte) (*Object, error) {
 		return nil, fmt.Errorf("symbol not followed by delimiter")
 	}
 
-	if err := br.UnreadByte(); err != nil {
-		return nil, err
-	}
+	unreadChar(br)
 
 	return newSymbol(sb.String()), nil
 }
 
-func Read(r io.Reader) (*Object, error) {
-	br := bufio.NewReader(r)
+func readList(br *bufio.Reader) (*Object, error) {
+	skipWhiteSpace(br)
 
-	if err := skipWhiteSpace(br); err != nil {
+	c, err := br.ReadByte()
+	if err == io.EOF {
+		return nil, fmt.Errorf("hoge")
+	}
+	if err != nil {
 		return nil, err
 	}
+
+	if c == ')' {
+		return newConsCell(nilObj, nilObj), nil // empty list
+	}
+
+	unreadChar(br)
+	carObj, err := read1(br)
+	if err != nil {
+		return nil, err
+	}
+
+	skipWhiteSpace(br)
+
+	c, err = br.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+
+	if c == '.' {
+		// dotted-pair
+		if !nextCharIsDelimiter(br) {
+			return nil, fmt.Errorf("dot not followed by delimiter")
+		}
+
+		cdrObj, err := read1(br)
+		if err != nil {
+			return nil, err
+		}
+
+		skipWhiteSpace(br)
+		c, err = br.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+
+		if c != ')' {
+			return nil, fmt.Errorf("list is not closed by right paren")
+		}
+
+		return cons(carObj, cdrObj), nil
+	}
+
+	unreadChar(br)
+
+	cdrObj, err := readList(br)
+	if err != nil {
+		return nil, err
+	}
+
+	return cons(carObj, cdrObj), nil
+}
+
+func read1(br *bufio.Reader) (*Object, error) {
+	skipWhiteSpace(br)
 
 	c, err := br.ReadByte()
 	if err != nil {
@@ -230,7 +288,13 @@ func Read(r io.Reader) (*Object, error) {
 	} else if isInitialSymbolChar(c) ||
 		((c == '+' || c == '-') && nextCharIsDelimiter(br)) {
 		return readSymbol(br, c)
+	} else if c == '(' {
+		return readList(br)
 	}
 
 	return nil, fmt.Errorf("unsupported data type")
+}
+
+func Read(r io.Reader) (*Object, error) {
+	return read1(bufio.NewReader(r))
 }

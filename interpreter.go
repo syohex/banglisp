@@ -5,7 +5,7 @@ import "math"
 var defaultPackage *Object
 var nilObj *Object
 
-func Initialize() {
+func init() {
 	nilObj = newSymbolInternal("nil")
 	v := nilObj.value.(*Symbol)
 

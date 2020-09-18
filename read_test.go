@@ -200,3 +200,62 @@ func TestReadString(t *testing.T) {
 		})
 	}
 }
+
+func TestReadList(t *testing.T) {
+	tests := []struct {
+		name    string
+		expr    string
+		wantErr bool
+	}{
+		{
+			name:    "number list",
+			expr:    "(1 2 3)",
+			wantErr: false,
+		},
+		{
+			name:    "string list",
+			expr:    `("1" "2" "3")`,
+			wantErr: false,
+		},
+		{
+			name:    "mixed list",
+			expr:    `(1 "2" t)`,
+			wantErr: false,
+		},
+		{
+			name:    "unclosed list string",
+			expr:    `(4 5 "foo"`,
+			wantErr: true,
+		},
+		{
+			name:    "unclosed list number",
+			expr:    `(4 5 6`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := strings.NewReader(tt.expr)
+			got, err := Read(r)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Read() error = %v", err)
+				return
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if got == nil {
+				t.Errorf("no error but return value is nil")
+				return
+			}
+
+			if got.kind != ConsCellType {
+				t.Errorf("got invalid type object [input]: %s -> %v", tt.expr, got.kind)
+				return
+			}
+		})
+	}
+}

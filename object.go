@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type objectType int
@@ -39,6 +40,10 @@ type Package struct {
 type ConsCell struct {
 	car *Object
 	cdr *Object
+}
+
+func (c *ConsCell) IsNil() bool {
+	return isNull(c.car) && isNull(c.cdr)
 }
 
 var objectID = 0
@@ -90,6 +95,24 @@ func (obj *Object) Eval() (*Object, error) {
 	}
 }
 
+func stringConsCell(sb strings.Builder, obj *Object) {
+	v := obj.value.(*ConsCell)
+	for {
+		sb.WriteString(v.car.String())
+		if v.IsNil() {
+			break
+		}
+
+		if v.cdr.kind == ConsCellType {
+			sb.WriteByte(' ')
+			stringConsCell(sb, v.cdr)
+		} else {
+			sb.WriteString(" . ")
+			sb.WriteString(v.cdr.String())
+		}
+	}
+}
+
 func (obj Object) String() string {
 	switch obj.kind {
 	case FixnumType:
@@ -110,8 +133,11 @@ func (obj Object) String() string {
 		n := v.name.value.(string)
 		return n
 	case ConsCellType:
-		v := obj.value.(*ConsCell)
-		return fmt.Sprintf("(%s %s)", v.car.String(), v.cdr.String())
+		var sb strings.Builder
+		sb.WriteByte('(')
+		stringConsCell(sb, &obj)
+		sb.WriteByte(')')
+		return sb.String()
 	default:
 		return "error: unsupported print type"
 	}

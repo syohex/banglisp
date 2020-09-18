@@ -21,8 +21,6 @@ func _flush(bw *bufio.Writer) {
 }
 
 func main() {
-	banglisp.Initialize()
-
 	if len(os.Args) >= 2 {
 		fmt.Printf("Usage: banglisp\n")
 		return
