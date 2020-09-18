@@ -16,6 +16,8 @@ const (
 	SymbolType
 	PackageType
 	ConsCellType
+	FunctionType
+	SpecialFormType
 )
 
 type Object struct {
@@ -42,6 +44,12 @@ type ConsCell struct {
 	cdr *Object
 }
 
+type SpecialFormFunc func(args ...*Object) *Object
+
+type SpecialForm struct {
+	code SpecialFormFunc
+}
+
 func (c *ConsCell) IsNil() bool {
 	return isNull(c.car) && isNull(c.cdr)
 }
@@ -62,6 +70,10 @@ func (o objectType) String() string {
 		return "Package"
 	case ConsCellType:
 		return "ConsCell"
+	case FunctionType:
+		return "Function"
+	case SpecialFormType:
+		return "SpecialForm"
 	default:
 		return "UNKNOWN_TYPE"
 	}
@@ -90,9 +102,57 @@ func (obj *Object) Eval() (*Object, error) {
 		}
 
 		return v.value, nil
+	case ConsCellType:
+		v := obj.value.(*ConsCell)
+
+		car, ok := v.car.value.(*Symbol)
+		if !ok {
+			return nil, fmt.Errorf("first element of cons cell is not list")
+		}
+
+		if car.function == nil {
+			return nil, fmt.Errorf("symbol '%v' does not have function", *car.name)
+		}
+
+		return v.car.apply(v.cdr)
 	default:
 		return nil, fmt.Errorf("unsupported eval type")
 	}
+}
+
+func (obj *Object) apply(args *Object) (*Object, error) {
+	switch obj.kind {
+	case SymbolType:
+		car := obj.value.(*Symbol)
+		if car.function == nil {
+			return nil, fmt.Errorf("symbol '%v' does not have function", *car.name)
+		}
+
+		return car.function.apply(args)
+	case SpecialFormType:
+		form := obj.value.(*SpecialForm)
+		formArgs := noEvalArguments(args)
+		ret := form.code(formArgs...)
+		return ret, nil
+	default:
+		return nil, fmt.Errorf("first element of cons cell is not list")
+	}
+}
+
+func noEvalArguments(args *Object) []*Object {
+	var ret []*Object
+	next := args
+	for {
+		v := next.value.(*ConsCell)
+		if v.IsNil() {
+			break
+		}
+
+		ret = append(ret, v.car)
+		next = v.cdr
+	}
+
+	return ret
 }
 
 func stringConsCell(sb strings.Builder, obj *Object) {
@@ -243,4 +303,17 @@ func newConsCell(car *Object, cdr *Object) *Object {
 	}
 
 	return newObject(ConsCellType, c)
+}
+
+func newSpecialForm(code SpecialFormFunc) *Object {
+	s := &SpecialForm{
+		code: code,
+	}
+	return newObject(SpecialFormType, s)
+}
+
+func installSpecialForm(name string, code SpecialFormFunc) {
+	sym := newSymbol(name)
+	v := sym.value.(*Symbol)
+	v.function = newSpecialForm(code)
 }

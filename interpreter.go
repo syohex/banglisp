@@ -26,4 +26,6 @@ func init() {
 	piObj := newSymbol("pi")
 	pv := piObj.value.(*Symbol)
 	pv.value = newFloat(math.Pi)
+
+	initSpecialForm()
 }
