@@ -25,7 +25,8 @@ func isDelimiter(c byte) bool {
 }
 
 func isInitialSymbolChar(c byte) bool {
-	return isAlpha(c) || c == '*' || c == '/' || c == '>' || c == '<' || c == '=' || c == '?' || c == '!'
+	return isAlpha(c) || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
+		c == '>' || c == '<' || c == '=' || c == '?' || c == '!'
 }
 
 func nextCharIsDigit(br *bufio.Reader) bool {
@@ -188,7 +189,7 @@ func readSymbol(br *bufio.Reader, c byte) (*Object, error) {
 	var sb strings.Builder
 	var err error
 	for {
-		if !(isInitialSymbolChar(c) || isDigit(c) || c == '+' || c == '-') {
+		if !(isInitialSymbolChar(c) || isDigit(c)) {
 			break
 		}
 
@@ -285,8 +286,7 @@ func read1(br *bufio.Reader) (*Object, error) {
 		return readNumber(br, c)
 	} else if c == '"' {
 		return readString(br)
-	} else if isInitialSymbolChar(c) ||
-		((c == '+' || c == '-') && nextCharIsDelimiter(br)) {
+	} else if isInitialSymbolChar(c) {
 		return readSymbol(br, c)
 	} else if c == '(' {
 		return readList(br)
