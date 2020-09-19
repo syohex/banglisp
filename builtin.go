@@ -1,55 +1,60 @@
 package banglisp
 
-func builtinEq(_ *Environment, args []*Object) *Object {
+import "fmt"
+
+func builtinEq(_ *Environment, args []*Object) (*Object, error) {
 	// (eq a b)
 	if Eq(args[0], args[1]) {
-		return tObj
+		return tObj, nil
 	}
 
-	return nilObj
+	return nilObj, nil
 }
 
-func builtinNull(_ *Environment, args []*Object) *Object {
+func builtinNull(_ *Environment, args []*Object) (*Object, error) {
 	// (null a)
 	if isNull(args[0]) {
-		return tObj
+		return tObj, nil
 	}
 
-	return nilObj
+	return nilObj, nil
 }
 
-func builtinAtom(_ *Environment, args []*Object) *Object {
+func builtinAtom(_ *Environment, args []*Object) (*Object, error) {
 	// (atom a)
 	if isAtom(args[0]) {
-		return tObj
+		return tObj, nil
 	}
 
-	return nilObj
+	return nilObj, nil
 }
 
-func floatValue(obj *Object) (float64, bool) {
+func floatValue(obj *Object) (float64, bool, error) {
 	switch v := obj.value.(type) {
 	case int64:
-		return float64(v), false
+		return float64(v), false, nil
 	case float64:
-		return v, true
+		return v, true, nil
 	default:
-		// error
-		panic("unsupported type: '+'")
+		return 0, false, fmt.Errorf("unsuppored type")
 	}
 }
 
-func builtinAdd(_ *Environment, args []*Object) *Object {
+func builtinAdd(_ *Environment, args []*Object) (*Object, error) {
 	// (+ n1 n2 ....)
 	if len(args) == 0 {
-		return newFixnum(0)
+		return newFixnum(0), nil
 	}
 
 	hasFloat := false
 	ret := 0.0
 
 	for _, arg := range args {
-		f, isFloat := floatValue(arg)
+		f, isFloat, err := floatValue(arg)
+		if err != nil {
+			return nil, &ErrUnsupportedArgumentType{"+", arg}
+		}
+
 		if !hasFloat && isFloat {
 			hasFloat = true
 		}
@@ -58,25 +63,33 @@ func builtinAdd(_ *Environment, args []*Object) *Object {
 	}
 
 	if hasFloat {
-		return newFloat(ret)
+		return newFloat(ret), nil
 	}
 
-	return newFixnum(int64(ret))
+	return newFixnum(int64(ret)), nil
 }
 
-func builtinMinus(_ *Environment, args []*Object) *Object {
+func builtinMinus(_ *Environment, args []*Object) (*Object, error) {
 	// (- n1 n2 ....)
-	ret, hasFloat := floatValue(args[0])
+	ret, hasFloat, err := floatValue(args[0])
+	if err != nil {
+		return nil, &ErrUnsupportedArgumentType{"-", args[0]}
+	}
+
 	if len(args) == 1 {
 		if hasFloat {
-			return newFloat(ret * -1)
+			return newFloat(ret * -1), nil
 		}
 
-		return newFixnum(int64(ret) * -1)
+		return newFixnum(int64(ret) * -1), nil
 	}
 
 	for _, arg := range args[1:] {
-		f, isFloat := floatValue(arg)
+		f, isFloat, err := floatValue(arg)
+		if err != nil {
+			return nil, &ErrUnsupportedArgumentType{"-", arg}
+		}
+
 		if !hasFloat && isFloat {
 			hasFloat = true
 		}
@@ -85,23 +98,27 @@ func builtinMinus(_ *Environment, args []*Object) *Object {
 	}
 
 	if hasFloat {
-		return newFloat(ret)
+		return newFloat(ret), nil
 	}
 
-	return newFixnum(int64(ret))
+	return newFixnum(int64(ret)), nil
 }
 
-func builtinMul(_ *Environment, args []*Object) *Object {
+func builtinMul(_ *Environment, args []*Object) (*Object, error) {
 	// (* n1 n2 ....)
 	if len(args) == 0 {
-		return newFixnum(1)
+		return newFixnum(1), nil
 	}
 
 	hasFloat := false
 	ret := 1.0
 
 	for _, arg := range args {
-		f, isFloat := floatValue(arg)
+		f, isFloat, err := floatValue(arg)
+		if err != nil {
+			return nil, &ErrUnsupportedArgumentType{"*", arg}
+		}
+
 		if !hasFloat && isFloat {
 			hasFloat = true
 		}
@@ -110,43 +127,47 @@ func builtinMul(_ *Environment, args []*Object) *Object {
 	}
 
 	if hasFloat {
-		return newFloat(ret)
+		return newFloat(ret), nil
 	}
 
-	return newFixnum(int64(ret))
+	return newFixnum(int64(ret)), nil
 }
 
-func builtinDiv(_ *Environment, args []*Object) *Object {
+func builtinDiv(_ *Environment, args []*Object) (*Object, error) {
 	// (/ n1 n2 ....)
-	sum, hasFloat := floatValue(args[0])
+	ret, hasFloat, err := floatValue(args[0])
+	if err != nil {
+		return nil, &ErrUnsupportedArgumentType{"/", args[0]}
+	}
 
 	for _, arg := range args[1:] {
-		switch v := arg.value.(type) {
-		case int64:
-			sum /= float64(v)
-		case float64:
-			hasFloat = true
-			sum /= v
-		default:
-			panic("unsupported type: '/'")
+		f, isFloat, err := floatValue(arg)
+		if err != nil {
+			return nil, &ErrUnsupportedArgumentType{"/", arg}
 		}
+
+		if !hasFloat && isFloat {
+			hasFloat = true
+		}
+
+		ret /= f
 	}
 
 	if hasFloat {
-		return newFloat(sum)
+		return newFloat(ret), nil
 	}
 
-	return newFixnum(int64(sum))
+	return newFixnum(int64(ret)), nil
 }
 
-func builtinMod(_ *Environment, args []*Object) *Object {
+func builtinMod(_ *Environment, args []*Object) (*Object, error) {
 	// (% n1 n2 ....)
 	var ret int64
 	switch v := args[0].value.(type) {
 	case int64:
 		ret = v
 	default:
-		panic("unsupported type: '%'")
+		return nil, &ErrUnsupportedArgumentType{"mod", args[0]}
 	}
 
 	for _, arg := range args[1:] {
@@ -154,25 +175,31 @@ func builtinMod(_ *Environment, args []*Object) *Object {
 		case int64:
 			ret %= v
 		default:
-			panic(" unsupported type: '%'")
+			return nil, &ErrUnsupportedArgumentType{"mod", arg}
 		}
 	}
 
-	return newFixnum(ret)
+	return newFixnum(ret), nil
 }
 
-func builtinCar(_ *Environment, args []*Object) *Object {
-	c := args[0].value.(*ConsCell)
-	return c.car
+func builtinCar(_ *Environment, args []*Object) (*Object, error) {
+	c, ok := args[0].value.(*ConsCell)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"car", args[0]}
+	}
+	return c.car, nil
 }
 
-func builtinCdr(_ *Environment, args []*Object) *Object {
-	c := args[0].value.(*ConsCell)
-	return c.cdr
+func builtinCdr(_ *Environment, args []*Object) (*Object, error) {
+	c, ok := args[0].value.(*ConsCell)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"cdr", args[0]}
+	}
+	return c.cdr, nil
 }
 
-func builtinCons(_ *Environment, args []*Object) *Object {
-	return cons(args[0], args[1])
+func builtinCons(_ *Environment, args []*Object) (*Object, error) {
+	return cons(args[0], args[1]), nil
 }
 
 func initBuiltinFunctions() {

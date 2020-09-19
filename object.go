@@ -83,7 +83,7 @@ type SpecialForm struct {
 	code specialFormFunction
 }
 
-type builtinFunctionType func(env *Environment, args []*Object) *Object
+type builtinFunctionType func(env *Environment, args []*Object) (*Object, error)
 
 type BuiltinFunction struct {
 	code     builtinFunctionType
@@ -201,8 +201,7 @@ func (obj *Object) apply(args *Object, env *Environment) (*Object, error) {
 			}
 		}
 
-		ret := fn.code(env, fnArgs)
-		return ret, nil
+		return fn.code(env, fnArgs)
 	default:
 		return nil, fmt.Errorf("first element of cons cell is not list")
 	}
