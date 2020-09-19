@@ -207,6 +207,27 @@ func builtinPrint(_ *Environment, args []*Object) (*Object, error) {
 	return nilObj, nil
 }
 
+func builtinFuncall(env *Environment, args []*Object) (*Object, error) {
+	fnSym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"funcall", args[0]}
+	}
+
+	if isNull(fnSym.function) {
+		return nil, fmt.Errorf("void function: %v", *fnSym)
+	}
+
+	switch fnSym.function.kind {
+	case BuiltinFunctionType:
+		fn := fnSym.function.value.(*BuiltinFunction)
+		return fn.code(env, args[1:])
+	case ClosureType:
+		panic("not implemented yet")
+	default:
+		return nil, &ErrUnsupportedArgumentType{"funcall", fnSym.function}
+	}
+}
+
 func initBuiltinFunctions() {
 	installBuiltinFunction("eq", builtinEq, 2, false)
 	installBuiltinFunction("null", builtinNull, 1, false)
@@ -228,4 +249,5 @@ func initBuiltinFunctions() {
 
 	// utility
 	installBuiltinFunction("print", builtinPrint, 1, false)
+	installBuiltinFunction("funcall", builtinFuncall, 0, true)
 }

@@ -18,6 +18,7 @@ const (
 	ConsCellType
 	SpecialFormType
 	BuiltinFunctionType
+	ClosureType
 )
 
 type Object struct {
@@ -124,6 +125,8 @@ func (o objectType) String() string {
 		return "BuiltinFunction"
 	case SpecialFormType:
 		return "SpecialForm"
+	case ClosureType:
+		return "ClosureType"
 	default:
 		return "UNKNOWN_TYPE"
 	}
