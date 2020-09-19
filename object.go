@@ -157,7 +157,7 @@ func (obj *Object) Eval(env *Environment) (*Object, error) {
 
 		car, ok := v.car.value.(*Symbol)
 		if !ok {
-			return nil, fmt.Errorf("first element of cons cell is not list")
+			return nil, fmt.Errorf("first element of cons cell is not list: %v(%v)", *obj, obj.kind)
 		}
 
 		if isNull(car.function) {

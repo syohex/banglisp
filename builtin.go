@@ -202,6 +202,11 @@ func builtinCons(_ *Environment, args []*Object) (*Object, error) {
 	return cons(args[0], args[1]), nil
 }
 
+func builtinPrint(_ *Environment, args []*Object) (*Object, error) {
+	fmt.Printf("%v\n", args[0])
+	return nilObj, nil
+}
+
 func initBuiltinFunctions() {
 	installBuiltinFunction("eq", builtinEq, 2, false)
 	installBuiltinFunction("null", builtinNull, 1, false)
@@ -220,4 +225,7 @@ func initBuiltinFunctions() {
 	installBuiltinFunction("cdr", builtinCdr, 1, false)
 	installBuiltinFunction("rest", builtinCdr, 1, false)
 	installBuiltinFunction("cons", builtinCons, 2, false)
+
+	// utility
+	installBuiltinFunction("print", builtinPrint, 1, false)
 }
