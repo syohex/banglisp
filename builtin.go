@@ -41,6 +41,10 @@ func floatValue(obj *Object) (float64, bool) {
 
 func builtinAdd(_ *Environment, args []*Object) *Object {
 	// (+ n1 n2 ....)
+	if len(args) == 0 {
+		return newFixnum(0)
+	}
+
 	hasFloat := false
 	ret := 0.0
 
@@ -63,6 +67,13 @@ func builtinAdd(_ *Environment, args []*Object) *Object {
 func builtinMinus(_ *Environment, args []*Object) *Object {
 	// (- n1 n2 ....)
 	ret, hasFloat := floatValue(args[0])
+	if len(args) == 1 {
+		if hasFloat {
+			return newFloat(ret * -1)
+		}
+
+		return newFixnum(int64(ret) * -1)
+	}
 
 	for _, arg := range args[1:] {
 		f, isFloat := floatValue(arg)
@@ -82,6 +93,10 @@ func builtinMinus(_ *Environment, args []*Object) *Object {
 
 func builtinMul(_ *Environment, args []*Object) *Object {
 	// (* n1 n2 ....)
+	if len(args) == 0 {
+		return newFixnum(1)
+	}
+
 	hasFloat := false
 	ret := 1.0
 
@@ -125,13 +140,13 @@ func builtinDiv(_ *Environment, args []*Object) *Object {
 }
 
 func builtinMod(_ *Environment, args []*Object) *Object {
-	// (* n1 n2 ....)
+	// (% n1 n2 ....)
 	var ret int64
 	switch v := args[0].value.(type) {
 	case int64:
 		ret = v
 	default:
-		panic("unsupported type: '/'")
+		panic("unsupported type: '%'")
 	}
 
 	for _, arg := range args[1:] {
@@ -139,7 +154,7 @@ func builtinMod(_ *Environment, args []*Object) *Object {
 		case int64:
 			ret %= v
 		default:
-			panic("unsupported type: '/'")
+			panic(" unsupported type: '%'")
 		}
 	}
 
@@ -156,21 +171,26 @@ func builtinCdr(_ *Environment, args []*Object) *Object {
 	return c.cdr
 }
 
+func builtinCons(_ *Environment, args []*Object) *Object {
+	return cons(args[0], args[1])
+}
+
 func initBuiltinFunctions() {
-	installBuiltinFunction("eq", builtinEq)
-	installBuiltinFunction("null", builtinNull)
-	installBuiltinFunction("atom", builtinAtom)
+	installBuiltinFunction("eq", builtinEq, 2, false)
+	installBuiltinFunction("null", builtinNull, 1, false)
+	installBuiltinFunction("atom", builtinAtom, 1, false)
 
 	// arithmetic operators
-	installBuiltinFunction("+", builtinAdd)
-	installBuiltinFunction("-", builtinMinus)
-	installBuiltinFunction("*", builtinMul)
-	installBuiltinFunction("/", builtinDiv)
-	installBuiltinFunction("%", builtinMod)
+	installBuiltinFunction("+", builtinAdd, 0, true)
+	installBuiltinFunction("-", builtinMinus, 1, true)
+	installBuiltinFunction("*", builtinMul, 0, true)
+	installBuiltinFunction("/", builtinDiv, 1, true)
+	installBuiltinFunction("mod", builtinMod, 1, true)
 
 	// cons cell operations
-	installBuiltinFunction("car", builtinCar)
-	installBuiltinFunction("first", builtinCar)
-	installBuiltinFunction("cdr", builtinCdr)
-	installBuiltinFunction("rest", builtinCdr)
+	installBuiltinFunction("car", builtinCar, 1, false)
+	installBuiltinFunction("first", builtinCar, 1, false)
+	installBuiltinFunction("cdr", builtinCdr, 1, false)
+	installBuiltinFunction("rest", builtinCdr, 1, false)
+	installBuiltinFunction("cons", builtinCons, 2, false)
 }

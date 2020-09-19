@@ -86,7 +86,9 @@ type SpecialForm struct {
 type builtinFunctionType func(env *Environment, args []*Object) *Object
 
 type BuiltinFunction struct {
-	code builtinFunctionType
+	code     builtinFunctionType
+	arity    int
+	variadic bool
 }
 
 func (c *ConsCell) IsNil() bool {
@@ -158,7 +160,7 @@ func (obj *Object) Eval(env *Environment) (*Object, error) {
 			return nil, fmt.Errorf("first element of cons cell is not list")
 		}
 
-		if car.function == nil {
+		if isNull(car.function) {
 			return nil, fmt.Errorf("symbol '%v' does not have function", *car.name)
 		}
 
@@ -187,6 +189,16 @@ func (obj *Object) apply(args *Object, env *Environment) (*Object, error) {
 		fnArgs, err := evalArguments(args, env)
 		if err != nil {
 			return nil, err
+		}
+
+		if fn.variadic {
+			if len(fnArgs) < fn.arity {
+				return nil, &ErrWrongNumberArguments{true, fn.arity, len(fnArgs)}
+			}
+		} else {
+			if len(fnArgs) != fn.arity {
+				return nil, &ErrWrongNumberArguments{false, fn.arity, len(fnArgs)}
+			}
 		}
 
 		ret := fn.code(env, fnArgs)
@@ -363,8 +375,9 @@ func newString(val string) *Object {
 
 func newSymbolInternal(val string) *Object {
 	s := &Symbol{
-		name:  newString(val),
-		plist: nilObj,
+		name:     newString(val),
+		function: nilObj,
+		plist:    nilObj,
 	}
 
 	return newObject(SymbolType, s)
@@ -405,17 +418,19 @@ func installSpecialForm(name string, code specialFormFunction) {
 	v.function = newSpecialForm(code)
 }
 
-func newBuiltinFunction(code builtinFunctionType) *Object {
+func newBuiltinFunction(code builtinFunctionType, arity int, variadic bool) *Object {
 	bf := &BuiltinFunction{
-		code: code,
+		code:     code,
+		arity:    arity,
+		variadic: variadic,
 	}
 	return newObject(BuiltinFunctionType, bf)
 }
 
-func installBuiltinFunction(name string, code builtinFunctionType) {
+func installBuiltinFunction(name string, code builtinFunctionType, arity int, variadic bool) {
 	sym := newSymbol(name)
 	v := sym.value.(*Symbol)
-	v.function = newBuiltinFunction(code)
+	v.function = newBuiltinFunction(code, arity, variadic)
 }
 
 func newEmptyEnvironment() *Environment {
