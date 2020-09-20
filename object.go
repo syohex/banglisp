@@ -45,11 +45,17 @@ type ConsCell struct {
 	cdr *Object
 }
 
+func (c *ConsCell) IsNil() bool {
+	return isNull(c.car) && isNull(c.cdr)
+}
+
+type bindPair struct {
+	name  *Object
+	value *Object
+}
+
 type Frame struct {
-	bindings []struct {
-		name  *Object
-		value *Object
-	}
+	bindings []bindPair
 }
 
 type Environment struct {
@@ -76,26 +82,6 @@ func (e *Environment) updateValue(variable *Object, value *Object) {
 			}
 		}
 	}
-}
-
-type specialFormFunction func(env *Environment, args []*Object) (*Object, error)
-
-type SpecialForm struct {
-	code     specialFormFunction
-	arity    int
-	variadic bool
-}
-
-type builtinFunctionType func(env *Environment, args []*Object) (*Object, error)
-
-type BuiltinFunction struct {
-	code     builtinFunctionType
-	arity    int
-	variadic bool
-}
-
-func (c *ConsCell) IsNil() bool {
-	return isNull(c.car) && isNull(c.cdr)
 }
 
 var objectID = 0
@@ -150,13 +136,18 @@ func (obj *Object) Eval(env *Environment) (*Object, error) {
 
 	switch obj.kind {
 	case SymbolType:
-		v := obj.value.(*Symbol)
-		if v.value == nil {
-			name := v.name.value.(string)
-			return nil, &ErrUnboundVariable{name}
+		val, ok := env.lookupSymbol(obj)
+		if !ok {
+			v := obj.value.(*Symbol)
+			if v.value == nil {
+				name := v.name.value.(string)
+				return nil, &ErrUnboundVariable{name}
+			}
+
+			val = v.value
 		}
 
-		return v.value, nil
+		return val, nil
 	case ConsCellType:
 		v := obj.value.(*ConsCell)
 
@@ -215,6 +206,14 @@ func (obj *Object) apply(args *Object, env *Environment) (*Object, error) {
 		}
 
 		return fn.code(env, fnArgs)
+	case ClosureType:
+		fn := obj.value.(*Closure)
+		fnArgs, err := evalArguments(args, env)
+		if err != nil {
+			return nil, err
+		}
+
+		return fn.apply(env, fnArgs)
 	default:
 		return nil, fmt.Errorf("first element of cons cell is not list")
 	}
@@ -311,6 +310,13 @@ func (obj Object) String() string {
 		return sb.String()
 	case BuiltinFunctionType:
 		return "#<builtin>"
+	case ClosureType:
+		v := obj.value.(*Closure)
+		if v.name != nil {
+			return fmt.Sprintf("#<function %v>", *v.name)
+		} else {
+			return "#<function lambda>"
+		}
 	default:
 		return "error: unsupported print type"
 	}
@@ -417,36 +423,6 @@ func newConsCell(car *Object, cdr *Object) *Object {
 	}
 
 	return newObject(ConsCellType, c)
-}
-
-func newSpecialForm(code specialFormFunction, arity int, variadic bool) *Object {
-	s := &SpecialForm{
-		code:     code,
-		arity:    arity,
-		variadic: variadic,
-	}
-	return newObject(SpecialFormType, s)
-}
-
-func installSpecialForm(name string, code specialFormFunction, arity int, variadic bool) {
-	sym := newSymbol(name)
-	v := sym.value.(*Symbol)
-	v.function = newSpecialForm(code, arity, variadic)
-}
-
-func newBuiltinFunction(code builtinFunctionType, arity int, variadic bool) *Object {
-	bf := &BuiltinFunction{
-		code:     code,
-		arity:    arity,
-		variadic: variadic,
-	}
-	return newObject(BuiltinFunctionType, bf)
-}
-
-func installBuiltinFunction(name string, code builtinFunctionType, arity int, variadic bool) {
-	sym := newSymbol(name)
-	v := sym.value.(*Symbol)
-	v.function = newBuiltinFunction(code, arity, variadic)
 }
 
 func newEmptyEnvironment() *Environment {

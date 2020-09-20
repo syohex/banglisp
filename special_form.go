@@ -1,8 +1,41 @@
 package banglisp
 
+type specialFormFunction func(env *Environment, args []*Object) (*Object, error)
+
+type SpecialForm struct {
+	code     specialFormFunction
+	arity    int
+	variadic bool
+}
+
+func newSpecialForm(code specialFormFunction, arity int, variadic bool) *Object {
+	s := &SpecialForm{
+		code:     code,
+		arity:    arity,
+		variadic: variadic,
+	}
+	return newObject(SpecialFormType, s)
+}
+
+func installSpecialForm(name string, code specialFormFunction, arity int, variadic bool) {
+	sym := newSymbol(name)
+	v := sym.value.(*Symbol)
+	v.function = newSpecialForm(code, arity, variadic)
+}
+
 func specialQuote(_ *Environment, args []*Object) (*Object, error) {
 	// (quote exp)
 	return args[0], nil
+}
+
+func specialFunction(_ *Environment, args []*Object) (*Object, error) {
+	// (function symbol)
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"function", args[0]}
+	}
+
+	return sym.function, nil
 }
 
 func specialIf(env *Environment, args []*Object) (*Object, error) {
@@ -46,8 +79,30 @@ func specialSetq(env *Environment, args []*Object) (*Object, error) {
 	return args[1], nil
 }
 
+func specialDefun(env *Environment, args []*Object) (*Object, error) {
+	// (defun name (params...) body)
+	nameSym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, ErrUnsupportedArgumentType{"defun", args[0]}
+	}
+
+	sym := intern(nameSym.name, nil)
+	symValue := sym.value.(*Symbol)
+	symValue.function = newClosure(args[0], noEvalArguments(args[1]), args[2:], env)
+	return args[0], nil
+}
+
+func specialLambda(env *Environment, args []*Object) (*Object, error) {
+	// (lambda (params...) body)
+	fn := newClosure(nil, noEvalArguments(args[0]), args[1:], env)
+	return fn, nil
+}
+
 func initSpecialForm() {
 	installSpecialForm("quote", specialQuote, 1, false)
+	installSpecialForm("function", specialFunction, 1, false)
 	installSpecialForm("if", specialIf, 2, true)
 	installSpecialForm("setq", specialSetq, 2, false)
+	installSpecialForm("defun", specialDefun, 2, true)
+	installSpecialForm("lambda", specialLambda, 1, true)
 }

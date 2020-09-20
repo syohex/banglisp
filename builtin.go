@@ -2,6 +2,29 @@ package banglisp
 
 import "fmt"
 
+type builtinFunctionType func(env *Environment, args []*Object) (*Object, error)
+
+type BuiltinFunction struct {
+	code     builtinFunctionType
+	arity    int
+	variadic bool
+}
+
+func newBuiltinFunction(code builtinFunctionType, arity int, variadic bool) *Object {
+	bf := &BuiltinFunction{
+		code:     code,
+		arity:    arity,
+		variadic: variadic,
+	}
+	return newObject(BuiltinFunctionType, bf)
+}
+
+func installBuiltinFunction(name string, code builtinFunctionType, arity int, variadic bool) {
+	sym := newSymbol(name)
+	v := sym.value.(*Symbol)
+	v.function = newBuiltinFunction(code, arity, variadic)
+}
+
 func builtinEq(_ *Environment, args []*Object) (*Object, error) {
 	// (eq a b)
 	if Eq(args[0], args[1]) {
@@ -208,23 +231,27 @@ func builtinPrint(_ *Environment, args []*Object) (*Object, error) {
 }
 
 func builtinFuncall(env *Environment, args []*Object) (*Object, error) {
-	fnSym, ok := args[0].value.(*Symbol)
-	if !ok {
-		return nil, &ErrUnsupportedArgumentType{"funcall", args[0]}
-	}
-
-	if isNull(fnSym.function) {
-		return nil, fmt.Errorf("void function: %v", *fnSym)
-	}
-
-	switch fnSym.function.kind {
-	case BuiltinFunctionType:
-		fn := fnSym.function.value.(*BuiltinFunction)
+	switch fn := args[0].value.(type) {
+	case *Symbol:
+		if isNull(fn.function) {
+			return nil, fmt.Errorf("void function: %v", *fn)
+		}
+		switch fn.function.kind {
+		case BuiltinFunctionType:
+			fn := fn.function.value.(*BuiltinFunction)
+			return fn.code(env, args[1:])
+		case ClosureType:
+			fn := fn.function.value.(*Closure)
+			return fn.apply(env, args[1:])
+		default:
+			return nil, &ErrUnsupportedArgumentType{"funcall", fn.function}
+		}
+	case *BuiltinFunction:
 		return fn.code(env, args[1:])
-	case ClosureType:
-		panic("not implemented yet")
+	case *Closure:
+		return fn.apply(env, args[1:])
 	default:
-		return nil, &ErrUnsupportedArgumentType{"funcall", fnSym.function}
+		return nil, &ErrUnsupportedArgumentType{"funcall", args[0]}
 	}
 }
 
