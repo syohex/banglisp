@@ -78,10 +78,12 @@ func (e *Environment) updateValue(variable *Object, value *Object) {
 	}
 }
 
-type specialFormFunction func(env *Environment, args []*Object) *Object
+type specialFormFunction func(env *Environment, args []*Object) (*Object, error)
 
 type SpecialForm struct {
-	code specialFormFunction
+	code     specialFormFunction
+	arity    int
+	variadic bool
 }
 
 type builtinFunctionType func(env *Environment, args []*Object) (*Object, error)
@@ -185,8 +187,16 @@ func (obj *Object) apply(args *Object, env *Environment) (*Object, error) {
 	case SpecialFormType:
 		form := obj.value.(*SpecialForm)
 		formArgs := noEvalArguments(args)
-		ret := form.code(env, formArgs)
-		return ret, nil
+		if form.variadic {
+			if len(formArgs) < form.arity {
+				return nil, &ErrWrongNumberArguments{true, form.arity, len(formArgs)}
+			}
+		} else {
+			if len(formArgs) != form.arity {
+				return nil, &ErrWrongNumberArguments{false, form.arity, len(formArgs)}
+			}
+		}
+		return form.code(env, formArgs)
 	case BuiltinFunctionType:
 		fn := obj.value.(*BuiltinFunction)
 		fnArgs, err := evalArguments(args, env)
@@ -299,6 +309,8 @@ func (obj Object) String() string {
 		stringConsCell(&sb, &obj)
 		sb.WriteByte(')')
 		return sb.String()
+	case BuiltinFunctionType:
+		return "#<builtin>"
 	default:
 		return "error: unsupported print type"
 	}
@@ -407,17 +419,19 @@ func newConsCell(car *Object, cdr *Object) *Object {
 	return newObject(ConsCellType, c)
 }
 
-func newSpecialForm(code specialFormFunction) *Object {
+func newSpecialForm(code specialFormFunction, arity int, variadic bool) *Object {
 	s := &SpecialForm{
-		code: code,
+		code:     code,
+		arity:    arity,
+		variadic: variadic,
 	}
 	return newObject(SpecialFormType, s)
 }
 
-func installSpecialForm(name string, code specialFormFunction) {
+func installSpecialForm(name string, code specialFormFunction, arity int, variadic bool) {
 	sym := newSymbol(name)
 	v := sym.value.(*Symbol)
-	v.function = newSpecialForm(code)
+	v.function = newSpecialForm(code, arity, variadic)
 }
 
 func newBuiltinFunction(code builtinFunctionType, arity int, variadic bool) *Object {

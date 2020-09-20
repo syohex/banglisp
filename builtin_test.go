@@ -6,18 +6,118 @@ import (
 	"testing"
 )
 
-func TestFunctionCallError(t *testing.T) {
-	r := strings.NewReader("(-)")
-	expr, err := Read(r)
-	if err != nil {
-		t.Errorf("Read('(-)') error=%v", err)
-		return
+func TestFunctionWrongArgumentNumberError(t *testing.T) {
+	tests := []struct {
+		name string
+		expr string
+	}{
+		{
+			name: "less number argument function",
+			expr: "(-)",
+		},
+		{
+			name: "much number argument function",
+			expr: "(car 1 2 3 4)",
+		},
+		{
+			name: "less number argument special form",
+			expr: "(quote)",
+		},
+		{
+			name: "much number argument special form",
+			expr: "(quote 1 2 3 4 5)",
+		},
 	}
 
-	_, err = Eval(expr)
-	if _, ok := err.(*ErrWrongNumberArguments); err == nil || !ok {
-		t.Error("could not get wrong number argument error")
-		return
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := strings.NewReader(tt.expr)
+			expr, err := Read(r)
+			if err != nil {
+				t.Errorf("Read('%s') error=%v", tt.expr, err)
+				return
+			}
+
+			_, err = Eval(expr)
+			if _, ok := err.(*ErrWrongNumberArguments); err == nil || !ok {
+				t.Error("could not get wrong number argument error")
+				return
+			}
+		})
+	}
+}
+
+func TestBuiltinBuiltinPredicate(t *testing.T) {
+	tests := []struct {
+		name string
+		expr string
+		want *Object
+	}{
+		// eq
+		{
+			name: "eq false",
+			expr: "(eq t nil)",
+			want: nilObj,
+		},
+		{
+			name: "eq true",
+			expr: "(eq t t)",
+			want: tObj,
+		},
+		// null
+		{
+			name: "null false",
+			expr: "(null '(1 2 3))",
+			want: nilObj,
+		},
+		{
+			name: "null true",
+			expr: "(null nil)",
+			want: tObj,
+		},
+		// atom
+		{
+			name: "atom list",
+			expr: `(atom '(1 2 3))`,
+			want: nilObj,
+		},
+		{
+			name: "atom number",
+			expr: "(atom 123)",
+			want: tObj,
+		},
+		{
+			name: "atom string",
+			expr: `(atom "foo")`,
+			want: tObj,
+		},
+		{
+			name: "atom symbol",
+			expr: `(atom 'foo)`,
+			want: tObj,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := strings.NewReader(tt.expr)
+			expr, err := Read(r)
+			if err != nil {
+				t.Errorf("Read('%s') error=%v", tt.expr, err)
+				return
+			}
+
+			obj, err := Eval(expr)
+			if err != nil {
+				t.Errorf("Eval('%v') error=%v", *expr, err)
+				return
+			}
+
+			if obj != tt.want {
+				t.Errorf("%s => got: %v, expected %v", tt.expr, *obj, *tt.want)
+				return
+			}
+		})
 	}
 }
 

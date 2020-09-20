@@ -228,6 +228,51 @@ func builtinFuncall(env *Environment, args []*Object) (*Object, error) {
 	}
 }
 
+func builtinSymbolName(_ *Environment, args []*Object) (*Object, error) {
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"symbol-name", args[0]}
+	}
+
+	return sym.name, nil
+}
+
+func builtinSymbolValue(_ *Environment, args []*Object) (*Object, error) {
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"symbol-value", args[0]}
+	}
+
+	return sym.value, nil
+}
+
+func builtinSymbolFunction(_ *Environment, args []*Object) (*Object, error) {
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"symbol-function", args[0]}
+	}
+
+	return sym.function, nil
+}
+
+func builtinSymbolPlist(_ *Environment, args []*Object) (*Object, error) {
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"symbol-plist", args[0]}
+	}
+
+	return sym.plist, nil
+}
+
+func builtinSymbolPackage(_ *Environment, args []*Object) (*Object, error) {
+	sym, ok := args[0].value.(*Symbol)
+	if !ok {
+		return nil, &ErrUnsupportedArgumentType{"symbol-package", args[0]}
+	}
+
+	return sym.package_, nil
+}
+
 func initBuiltinFunctions() {
 	installBuiltinFunction("eq", builtinEq, 2, false)
 	installBuiltinFunction("null", builtinNull, 1, false)
@@ -250,4 +295,11 @@ func initBuiltinFunctions() {
 	// utility
 	installBuiltinFunction("print", builtinPrint, 1, false)
 	installBuiltinFunction("funcall", builtinFuncall, 0, true)
+
+	// symbol functions
+	installBuiltinFunction("symbol-name", builtinSymbolName, 1, false)
+	installBuiltinFunction("symbol-value", builtinSymbolValue, 1, false)
+	installBuiltinFunction("symbol-function", builtinSymbolFunction, 1, false)
+	installBuiltinFunction("symbol-plist", builtinSymbolPlist, 1, false)
+	installBuiltinFunction("symbol-package", builtinSymbolPackage, 1, false)
 }
