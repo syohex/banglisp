@@ -137,6 +137,49 @@ func specialLet(env *Environment, args []*Object) (*Object, error) {
 	return ret, nil
 }
 
+func specialLetStar(env *Environment, args []*Object) (*Object, error) {
+	// (let* ((var1 val1) (var2 val2)) body)
+	next := args[0]
+	frames := 0
+	for {
+		if next == emptyList {
+			break
+		}
+
+		iter := next.value.(*ConsCell)
+
+		pair := iter.car.value.(*ConsCell)
+		name := pair.car
+
+		valueObj := pair.cdr.value.(*ConsCell)
+		value, err := valueObj.car.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+
+		frame := &Frame{}
+		frame.addBinding(name, value)
+		env.pushFrame(frame)
+
+		frames++
+
+		next = iter.cdr
+	}
+
+	defer env.popFrame(frames)
+
+	var err error
+	ret := nilObj
+	for _, expr := range args[1:] {
+		ret, err = expr.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ret, nil
+}
+
 func initSpecialForm() {
 	installSpecialForm("quote", specialQuote, 1, false)
 	installSpecialForm("function", specialFunction, 1, false)
@@ -145,4 +188,5 @@ func initSpecialForm() {
 	installSpecialForm("defun", specialDefun, 2, true)
 	installSpecialForm("lambda", specialLambda, 1, true)
 	installSpecialForm("let", specialLet, 1, true)
+	installSpecialForm("let*", specialLetStar, 1, true)
 }

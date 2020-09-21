@@ -215,6 +215,7 @@ func TestLambdaSimple(t *testing.T) {
 		return
 	}
 }
+
 func TestLetSimple(t *testing.T) {
 	letExpr := `
 (let ((a 10)
@@ -244,6 +245,39 @@ func TestLetSimple(t *testing.T) {
 
 	if v != 6000 {
 		t.Errorf("%s return unexpected value: got %d, expected: 6000", letExpr, v)
+		return
+	}
+}
+
+func TestLetStarSimple(t *testing.T) {
+	input := `
+(let* ((a 10)
+       (b (+ a a a))
+       (c (* a b)))
+  (* a b c))
+`
+
+	r := strings.NewReader(input)
+	expr, err := Read(r)
+	if err != nil {
+		t.Errorf("Read('%s') error=%v", input, err)
+		return
+	}
+
+	val, err := Eval(expr)
+	if err != nil {
+		t.Errorf("could not evaluate %s: %v", input, err)
+		return
+	}
+
+	v, ok := val.value.(int64)
+	if !ok {
+		t.Errorf("function add does not return fixnum value: %v", *expr)
+		return
+	}
+
+	if v != 90000 {
+		t.Errorf("%s return unexpected value: got %d, expected: 6000", input, v)
 		return
 	}
 }
