@@ -217,14 +217,14 @@ func readList(br *bufio.Reader) (*Object, error) {
 
 	c, err := br.ReadByte()
 	if err == io.EOF {
-		return nil, fmt.Errorf("hoge")
+		return nil, fmt.Errorf("list is not closed")
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if c == ')' {
-		return newConsCell(nilObj, nilObj), nil // empty list
+		return emptyList, nil
 	}
 
 	unreadChar(br)
@@ -297,7 +297,7 @@ func read1(br *bufio.Reader) (*Object, error) {
 		}
 
 		quote := intern(newString("quote"), nil)
-		return cons(quote, cons(rest, newConsCell(nilObj, nilObj))), nil
+		return cons(quote, cons(rest, emptyList)), nil
 	}
 
 	return nil, fmt.Errorf("unsupported data type")

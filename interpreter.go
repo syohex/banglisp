@@ -5,11 +5,14 @@ import "math"
 var defaultPackage *Object
 var tObj *Object
 var nilObj *Object
+var emptyList *Object
 var defaultEnvironment *Environment
 
 func init() {
 	nilObj = newSymbolInternal("nil")
 	v := nilObj.value.(*Symbol)
+
+	emptyList = newConsCell(nilObj, nilObj)
 
 	v.value = nilObj
 	v.plist = nilObj

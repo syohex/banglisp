@@ -45,10 +45,6 @@ type ConsCell struct {
 	cdr *Object
 }
 
-func (c *ConsCell) IsNil() bool {
-	return isNull(c.car) && isNull(c.cdr)
-}
-
 type bindPair struct {
 	name  *Object
 	value *Object
@@ -223,11 +219,11 @@ func evalArguments(args *Object, env *Environment) ([]*Object, error) {
 	var ret []*Object
 	next := args
 	for {
-		v := next.value.(*ConsCell)
-		if v.IsNil() {
+		if next == emptyList {
 			break
 		}
 
+		v := next.value.(*ConsCell)
 		ev, err := v.car.Eval(env)
 		if err != nil {
 			return nil, err
@@ -244,11 +240,11 @@ func noEvalArguments(args *Object) []*Object {
 	var ret []*Object
 	next := args
 	for {
-		v := next.value.(*ConsCell)
-		if v.IsNil() {
+		if next == emptyList {
 			break
 		}
 
+		v := next.value.(*ConsCell)
 		ret = append(ret, v.car)
 		next = v.cdr
 	}
@@ -260,11 +256,11 @@ func stringConsCell(sb *strings.Builder, obj *Object) {
 	first := true
 	next := obj
 	for {
-		v := next.value.(*ConsCell)
-		if v.IsNil() {
+		if next == emptyList {
 			break
 		}
 
+		v := next.value.(*ConsCell)
 		if !first {
 			first = true
 			sb.WriteByte(' ')
@@ -278,8 +274,8 @@ func stringConsCell(sb *strings.Builder, obj *Object) {
 			break
 		}
 
-		next = v.cdr
 		first = false
+		next = v.cdr
 	}
 }
 
@@ -427,6 +423,6 @@ func newConsCell(car *Object, cdr *Object) *Object {
 
 func newEmptyEnvironment() *Environment {
 	e := &Environment{}
-	e.frames = append(e.frames, &Frame{})
+	e.frames = make([]*Frame, 0)
 	return e
 }
