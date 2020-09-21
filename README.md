@@ -43,5 +43,5 @@ Simple LISP implementation of [対話によるCommon Lisp入門](https://www.mor
 
 ```bash
 % ./banglisp fizzbuzz.lisp
-(1 2 fizz 4 buzz fizz 7 8 fizz buzz 11 fizz 13 14 fizzbuzz)
+(1 2 "fizz" 4 "buzz" "fizz" 7 8 "fizz" "buzz" 11 "fizz" 13 14 "fizzbuzz")
 ```

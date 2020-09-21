@@ -254,7 +254,7 @@ func (obj Object) String() string {
 		return strconv.FormatFloat(v, 'E', -1, 64)
 	case StringType:
 		v := obj.value.(string)
-		return v
+		return fmt.Sprintf(`"%s"`, v)
 	case SymbolType:
 		v := obj.value.(*Symbol)
 		n := v.name.value.(string)
