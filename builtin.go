@@ -78,6 +78,10 @@ func builtinCdr(_ *Environment, args []*Object) (*Object, error) {
 }
 
 func builtinCons(_ *Environment, args []*Object) (*Object, error) {
+	if args[1] == nilObj {
+		return cons(args[0], emptyList), nil
+	}
+
 	return cons(args[0], args[1]), nil
 }
 

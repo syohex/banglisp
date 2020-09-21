@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -305,4 +306,31 @@ func read1(br *bufio.Reader) (*Object, error) {
 
 func Read(r io.Reader) (*Object, error) {
 	return read1(bufio.NewReader(r))
+}
+
+func ReadEvalFile(file string) (*Object, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	br := bufio.NewReader(f)
+	var obj *Object
+	for {
+		obj, err = read1(br)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = Eval(obj)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return obj, nil
 }

@@ -20,12 +20,7 @@ func _flush(bw *bufio.Writer) {
 	}
 }
 
-func main() {
-	if len(os.Args) >= 2 {
-		fmt.Printf("Usage: banglisp\n")
-		return
-	}
-
+func runREPL() {
 	bw := bufio.NewWriter(os.Stdout)
 	for {
 		_print(bw, "> ")
@@ -53,4 +48,21 @@ func main() {
 
 		fmt.Printf("%v\n", *val)
 	}
+}
+
+func main() {
+	if len(os.Args) == 1 {
+		runREPL()
+		return
+	}
+
+	for _, file := range os.Args[1:] {
+		_, err := banglisp.ReadEvalFile(file)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
 }
