@@ -7,14 +7,14 @@ import (
 func TestNewFixnum(t *testing.T) {
 	num1 := newFixnum(10)
 
-	if !Eq(num1, num1) {
-		t.Error("Eq(obj, obj) must always return true")
+	if !objectEqual(num1, num1) {
+		t.Error("objectEqual(obj, obj) must always return true")
 		return
 	}
 
 	num2 := newFixnum(20)
-	if Eq(num1, num2) {
-		t.Error("Eq(obj1, obj2) must always return false")
+	if objectEqual(num1, num2) {
+		t.Error("objectEqual(obj1, obj2) must always return false")
 		return
 	}
 

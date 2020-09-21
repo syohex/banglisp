@@ -300,12 +300,12 @@ func newID() int {
 	return n
 }
 
-func Eq(a *Object, b *Object) bool {
+func objectEqual(a *Object, b *Object) bool {
 	return a.id == b.id
 }
 
 func isNull(v *Object) bool {
-	return Eq(v, nilObj)
+	return objectEqual(v, nilObj)
 }
 
 func cons(car *Object, cdr *Object) *Object {

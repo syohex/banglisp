@@ -36,6 +36,7 @@ func init() {
 
 	initSpecialForm()
 	initBuiltinFunctions()
+	initNumberFunctions()
 }
 
 func Eval(obj *Object) (*Object, error) {

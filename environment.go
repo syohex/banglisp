@@ -34,7 +34,7 @@ func (e *Environment) popFrame(count int) {
 func (e *Environment) lookupSymbol(obj *Object) (*Object, bool) {
 	for _, f := range e.frames {
 		for _, b := range f.bindings {
-			if Eq(obj, b.name) {
+			if objectEqual(obj, b.name) {
 				return b.value, true
 			}
 		}
@@ -46,7 +46,7 @@ func (e *Environment) lookupSymbol(obj *Object) (*Object, bool) {
 func (e *Environment) updateValue(variable *Object, value *Object) {
 	for _, f := range e.frames {
 		for _, b := range f.bindings {
-			if Eq(variable, b.name) {
+			if objectEqual(variable, b.name) {
 				b.value = value
 			}
 		}
