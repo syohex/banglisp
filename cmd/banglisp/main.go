@@ -8,13 +8,14 @@ import (
 	"github.com/syohex/banglisp"
 )
 
-func _print(bw *bufio.Writer, msg string) {
-	if _, err := bw.WriteString(msg); err != nil {
+func showPrompt(bw *bufio.Writer) {
+	p := banglisp.CurrentPackage()
+	prompt := fmt.Sprintf("%v> ", *p)
+
+	if _, err := bw.WriteString(prompt); err != nil {
 		fmt.Println(err)
 	}
-}
 
-func _flush(bw *bufio.Writer) {
 	if err := bw.Flush(); err != nil {
 		fmt.Println(err)
 	}
@@ -23,8 +24,7 @@ func _flush(bw *bufio.Writer) {
 func runREPL() {
 	bw := bufio.NewWriter(os.Stdout)
 	for {
-		_print(bw, "> ")
-		_flush(bw)
+		showPrompt(bw)
 
 		exp, err := banglisp.Read(os.Stdin)
 		if err != nil {

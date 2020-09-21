@@ -39,6 +39,10 @@ func init() {
 	initNumberFunctions()
 }
 
+func CurrentPackage() *Object {
+	return defaultPackage
+}
+
 func Eval(obj *Object) (*Object, error) {
 	return obj.Eval(defaultEnvironment)
 }
