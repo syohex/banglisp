@@ -206,7 +206,7 @@ func TestLambdaSimple(t *testing.T) {
 
 	v, ok := val.value.(int64)
 	if !ok {
-		t.Errorf("function add does not return fixnum value: %v", *expr)
+		t.Errorf("return value is not fixnum type: %v", *expr)
 		return
 	}
 
@@ -239,7 +239,7 @@ func TestLetSimple(t *testing.T) {
 
 	v, ok := val.value.(int64)
 	if !ok {
-		t.Errorf("function add does not return fixnum value: %v", *expr)
+		t.Errorf("return value is not fixnum type: %v", *expr)
 		return
 	}
 
@@ -272,12 +272,76 @@ func TestLetStarSimple(t *testing.T) {
 
 	v, ok := val.value.(int64)
 	if !ok {
-		t.Errorf("function add does not return fixnum value: %v", *expr)
+		t.Errorf("return value is not fixnum: %v", *expr)
 		return
 	}
 
 	if v != 90000 {
 		t.Errorf("%s return unexpected value: got %d, expected: 6000", input, v)
 		return
+	}
+}
+
+func TestSimpleOrAnd(t *testing.T) {
+	tests := []struct {
+		name string
+		expr string
+		want int64
+		nil  bool
+	}{
+		{
+			name: "or",
+			expr: "(or nil nil nil 99)",
+			want: 99,
+		},
+		{
+			name: "or nil",
+			expr: "(or nil nil)",
+			nil:  true,
+		},
+		{
+			name: "and",
+			expr: "(and t t t 42)",
+			want: 42,
+		},
+		{
+			name: "and nil",
+			expr: "(and nil t t 42)",
+			nil:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expr, err := Read(strings.NewReader(tt.expr))
+			if err != nil {
+				t.Errorf("Read('%s') error=%v", tt.expr, err)
+				return
+			}
+
+			val, err := Eval(expr)
+			if err != nil {
+				t.Errorf("could not evaluate %s: %v", tt.expr, err)
+				return
+			}
+
+			if tt.nil {
+				if !isNull(val) {
+					t.Errorf("%s does not return nil: %v", tt.expr, *val)
+				}
+				return
+			}
+
+			v, ok := val.value.(int64)
+			if !ok {
+				t.Errorf("return value is not fixnum value: %v", *expr)
+				return
+			}
+
+			if v != tt.want {
+				t.Errorf("%s return unexpected value: got %d, expected: %d", tt.expr, v, tt.want)
+				return
+			}
+		})
 	}
 }

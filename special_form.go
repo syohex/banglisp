@@ -180,6 +180,40 @@ func specialLetStar(env *Environment, args []*Object) (*Object, error) {
 	return ret, nil
 }
 
+func specialOr(env *Environment, args []*Object) (*Object, error) {
+	// (or expr1 expr2...)
+	for _, expr := range args[0:] {
+		ret, err := expr.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+
+		if !isNull(ret) {
+			return ret, nil
+		}
+	}
+
+	return nilObj, nil
+}
+
+func specialAnd(env *Environment, args []*Object) (*Object, error) {
+	// (and expr1 expr2...)
+	ret := nilObj
+	var err error
+	for _, expr := range args[0:] {
+		ret, err = expr.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+
+		if isNull(ret) {
+			return nilObj, err
+		}
+	}
+
+	return ret, nil
+}
+
 func initSpecialForm() {
 	installSpecialForm("quote", specialQuote, 1, false)
 	installSpecialForm("function", specialFunction, 1, false)
@@ -187,6 +221,10 @@ func initSpecialForm() {
 	installSpecialForm("setq", specialSetq, 2, false)
 	installSpecialForm("defun", specialDefun, 2, true)
 	installSpecialForm("lambda", specialLambda, 1, true)
+
 	installSpecialForm("let", specialLet, 1, true)
 	installSpecialForm("let*", specialLetStar, 1, true)
+
+	installSpecialForm("or", specialOr, 1, true)
+	installSpecialForm("and", specialAnd, 1, true)
 }
