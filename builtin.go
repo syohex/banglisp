@@ -85,6 +85,36 @@ func builtinCons(_ *Environment, args []*Object) (*Object, error) {
 	return cons(args[0], args[1]), nil
 }
 
+func builtinLength(_ *Environment, args []*Object) (*Object, error) {
+	switch args[0].kind {
+	case ConsCellType:
+		v := args[0].value.(*ConsCell)
+		var ret int64 = 1
+		next := v.cdr
+		for {
+			if next == emptyList {
+				break
+			}
+
+			c, ok := next.value.(*ConsCell)
+			if !ok {
+				return nil, &ErrUnsupportedArgumentType{"length", v.cdr}
+			}
+
+			next = c.cdr
+			ret++
+		}
+
+		return newFixnum(ret), nil
+	case StringType:
+		v := args[0].value.(string)
+		return newFixnum(int64(len(v))), nil
+	default:
+		return nil, &ErrUnsupportedArgumentType{"length", args[0]}
+	}
+
+}
+
 func builtinPrint(_ *Environment, args []*Object) (*Object, error) {
 	fmt.Printf("%v\n", args[0])
 	return nilObj, nil
@@ -172,6 +202,7 @@ func initBuiltinFunctions() {
 	installBuiltinFunction("cdr", builtinCdr, 1, false)
 	installBuiltinFunction("rest", builtinCdr, 1, false)
 	installBuiltinFunction("cons", builtinCons, 2, false)
+	installBuiltinFunction("length", builtinLength, 1, false)
 
 	// utility
 	installBuiltinFunction("print", builtinPrint, 1, false)
