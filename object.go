@@ -50,36 +50,6 @@ type bindPair struct {
 	value *Object
 }
 
-type Frame struct {
-	bindings []bindPair
-}
-
-type Environment struct {
-	frames []*Frame
-}
-
-func (e *Environment) lookupSymbol(obj *Object) (*Object, bool) {
-	for _, f := range e.frames {
-		for _, b := range f.bindings {
-			if Eq(obj, b.name) {
-				return b.value, true
-			}
-		}
-	}
-
-	return nil, false
-}
-
-func (e *Environment) updateValue(variable *Object, value *Object) {
-	for _, f := range e.frames {
-		for _, b := range f.bindings {
-			if Eq(variable, b.name) {
-				b.value = value
-			}
-		}
-	}
-}
-
 var objectID = 0
 
 func isAtom(obj *Object) bool {
@@ -419,10 +389,4 @@ func newConsCell(car *Object, cdr *Object) *Object {
 	}
 
 	return newObject(ConsCellType, c)
-}
-
-func newEmptyEnvironment() *Environment {
-	e := &Environment{}
-	e.frames = make([]*Frame, 0)
-	return e
 }
