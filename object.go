@@ -45,11 +45,6 @@ type ConsCell struct {
 	cdr *Object
 }
 
-type bindPair struct {
-	name  *Object
-	value *Object
-}
-
 var objectID = 0
 
 func isAtom(obj *Object) bool {

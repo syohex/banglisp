@@ -1,7 +1,16 @@
 package banglisp
 
+type bindPair struct {
+	name  *Object
+	value *Object
+}
+
 type Frame struct {
 	bindings []bindPair
+}
+
+func (f *Frame) addBinding(name *Object, value *Object) {
+	f.bindings = append(f.bindings, bindPair{name, value})
 }
 
 type Environment struct {
@@ -12,6 +21,14 @@ func newEmptyEnvironment() *Environment {
 	e := &Environment{}
 	e.frames = make([]*Frame, 0)
 	return e
+}
+
+func (e *Environment) pushFrame(f *Frame) {
+	e.frames = append([]*Frame{f}, e.frames...)
+}
+
+func (e *Environment) popFrame(count int) {
+	e.frames = e.frames[count:]
 }
 
 func (e *Environment) lookupSymbol(obj *Object) (*Object, bool) {

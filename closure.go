@@ -24,13 +24,11 @@ func (c *Closure) apply(env *Environment, actualArgs []*Object) (*Object, error)
 
 	frame := &Frame{}
 	for i := 0; i < len(c.params); i++ {
-		frame.bindings = append(frame.bindings, bindPair{c.params[i], actualArgs[i]})
+		frame.addBinding(c.params[i], actualArgs[i])
 	}
 
-	env.frames = append([]*Frame{frame}, env.frames...) // push frame
-	defer func() {
-		env.frames = env.frames[1:] // pop frame
-	}()
+	env.pushFrame(frame)
+	defer env.popFrame(1)
 
 	ret := nilObj
 	var err error
