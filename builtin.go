@@ -1,6 +1,9 @@
 package banglisp
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type builtinFunctionType func(env *Environment, args []*Object) (*Object, error)
 
@@ -145,6 +148,24 @@ func builtinFuncall(env *Environment, args []*Object) (*Object, error) {
 	}
 }
 
+func builtinStringConcat(_ *Environment, args []*Object) (*Object, error) {
+	var ss []string
+	for _, arg := range args {
+		v, ok := arg.value.(string)
+		if !ok {
+			return nil, &ErrUnsupportedArgumentType{"string-concat", arg}
+		}
+
+		ss = append(ss, v)
+	}
+
+	if len(ss) == 0 {
+		return newString(""), nil
+	}
+
+	return newString(strings.Join(ss, "")), nil
+}
+
 func builtinSymbolName(_ *Environment, args []*Object) (*Object, error) {
 	sym, ok := args[0].value.(*Symbol)
 	if !ok {
@@ -207,6 +228,9 @@ func initBuiltinFunctions() {
 	// utility
 	installBuiltinFunction("print", builtinPrint, 1, false)
 	installBuiltinFunction("funcall", builtinFuncall, 0, true)
+
+	// string functions
+	installBuiltinFunction("string-concat", builtinStringConcat, 0, true)
 
 	// symbol functions
 	installBuiltinFunction("symbol-name", builtinSymbolName, 1, false)
